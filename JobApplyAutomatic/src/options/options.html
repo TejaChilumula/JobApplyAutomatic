@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Resume Manager - Auto Job Apply</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Resume Manager</h1>
+    <p class="description">Upload and manage your resumes for automatic job applications. The extension will select the best resume based on the job description.</p>
+    
+    <div class="upload-section">
+      <h2>Upload New Resume</h2>
+      <form id="resumeForm">
+        <div class="form-group">
+          <label for="resumeName">Resume Name:</label>
+          <input type="text" id="resumeName" name="resumeName" placeholder="e.g., Software Engineer Resume" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="resumeFile">Select File:</label>
+          <input type="file" id="resumeFile" name="resumeFile" accept=".pdf,.doc,.docx" required>
+          <small>Supported formats: PDF, DOC, DOCX (max 10MB)</small>
+        </div>
+        
+        <button type="submit" id="uploadBtn">Upload Resume</button>
+      </form>
+    </div>
+    
+    <div class="resumes-section">
+      <h2>Your Resumes</h2>
+      <div id="resumeList"></div>
+    </div>
+    
+    <div id="status" class="status"></div>
+  </div>
+  
+  <script src="options.js"></script>
+</body>
+</html> 

@@ -1,0 +1,55 @@
+# Auto Job Apply Builder - Chrome Extension
+
+## Requirements
+- Google Chrome browser
+- OpenAI API key (optional, for GPT-powered answers)
+
+## Setup Instructions
+
+1. **Load the Extension:**
+   - Open Chrome and go to `chrome://extensions/`
+   - Enable "Developer mode" (toggle in top right)
+   - Click "Load unpacked" and select the `JobApplyAutomatic` folder
+
+2. **Configure Your Profile:**
+   - Click the extension icon in your browser toolbar
+   - Fill in your personal details (name, email, phone, etc.)
+   - Optionally add your OpenAI API key for GPT-powered answers
+   - Click "Save Profile"
+
+3. **Upload Resumes:**
+   - Right-click the extension icon and select "Options"
+   - Upload multiple resumes with descriptive names
+   - The extension will automatically select the best resume based on job description
+
+4. **Use the Extension:**
+   - Navigate to any job application page
+   - Click the extension icon and click "Run Auto Apply"
+   - The extension will automatically fill forms and submit applications
+
+## Features
+- Auto-fills common form fields (name, email, phone, etc.)
+- Intelligent resume selection based on job description
+- GPT-powered answers for unknown questions (requires API key)
+- Multi-page form navigation and submission
+- Works with major ATS platforms (Workday, Greenhouse, Lever, etc.)
+
+## File Structure
+```
+JobApplyAutomatic/
+├── manifest.json          # Extension configuration
+├── src/
+│   ├── background.js      # Background service worker
+│   ├── content.js         # Main automation logic
+│   ├── utils.js           # Utility functions
+│   ├── gpt.js             # GPT integration
+│   ├── popup/             # Extension popup UI
+│   └── options/           # Options page for resume management
+└── public/
+    └── icon.png           # Extension icon
+```
+
+## Security Notes
+- Your profile data is stored locally in Chrome storage
+- GPT API key is stored locally and only used for generating answers
+- No data is sent to external servers except OpenAI (if API key provided) 

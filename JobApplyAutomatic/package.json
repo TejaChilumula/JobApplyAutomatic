@@ -1,0 +1,13 @@
+{
+  "name": "auto-job-apply-builder",
+  "version": "1.0.0",
+  "description": "Chrome extension to auto-fill and submit job applications using stored user data and GPT.",
+  "main": "src/background.js",
+  "scripts": {
+    "dev": "echo 'No build step needed for vanilla JS'",
+    "build": "echo 'No build step needed for vanilla JS'"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {}
+} 

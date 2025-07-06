@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Auto Job Apply</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <h2>Profile</h2>
+  <form id="profileForm" onsubmit="return false;">
+    <h3>Personal Information</h3>
+    <input type="text" name="firstName" placeholder="First Name"><br>
+    <input type="text" name="lastName" placeholder="Last Name"><br>
+    <input type="text" name="fullName" placeholder="Full Name (if separate fields not available)"><br>
+    <input type="email" name="email" placeholder="Email" required><br>
+    <input type="text" name="phone" placeholder="Phone Number"><br>
+    
+    <h3>Address</h3>
+    <input type="text" name="address" placeholder="Street Address"><br>
+    <input type="text" name="city" placeholder="City"><br>
+    <input type="text" name="state" placeholder="State/Province"><br>
+    <input type="text" name="zipCode" placeholder="ZIP/Postal Code"><br>
+    <input type="text" name="country" placeholder="Country"><br>
+    
+    <h3>Professional Links</h3>
+    <input type="text" name="linkedin" placeholder="LinkedIn URL"><br>
+    <input type="text" name="github" placeholder="GitHub URL"><br>
+    <input type="text" name="website" placeholder="Personal Website/Portfolio"><br>
+    
+    <h3>Current Position</h3>
+    <input type="text" name="currentCompany" placeholder="Current Company"><br>
+    <input type="text" name="currentTitle" placeholder="Current Job Title"><br>
+    
+    <h3>Additional Information</h3>
+    <input type="text" name="experience" placeholder="Years of Experience"><br>
+    <input type="text" name="education" placeholder="Highest Education Level"><br>
+    <input type="text" name="salary" placeholder="Expected Salary (optional)"><br>
+    <input type="text" name="availability" placeholder="Availability/Start Date"><br>
+    
+    <h3>Visa & Sponsorship</h3>
+    <select name="visaStatus" id="visaStatus">
+      <option value="">Select Visa Status</option>
+      <option value="citizen">US Citizen</option>
+      <option value="permanent">Permanent Resident</option>
+      <option value="visa">Work Visa (H1B, etc.)</option>
+      <option value="student">Student Visa (F1)</option>
+      <option value="other">Other</option>
+    </select><br>
+    
+    <select name="sponsorship" id="sponsorship">
+      <option value="">Sponsorship Required?</option>
+      <option value="no">No sponsorship needed</option>
+      <option value="yes">Yes, need sponsorship</option>
+      <option value="maybe">Maybe, depending on role</option>
+    </select><br>
+    
+    <select name="workAuthorization" id="workAuthorization">
+      <option value="">Work Authorization</option>
+      <option value="authorized">Authorized to work in US</option>
+      <option value="not_authorized">Not authorized to work in US</option>
+      <option value="pending">Authorization pending</option>
+    </select><br>
+    
+    <h3>API Configuration</h3>
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+      <input type="password" name="gptApiKey" placeholder="SambaNova API Key (required for GPT answers)" style="flex: 1;">
+      <button type="button" id="testGptKeyBtn" style="padding: 2px 10px; font-size: 13px;">Test</button>
+      <div id="gpt-status" style="font-size: 13px; min-width: 110px;"></div>
+    </div>
+    
+    <button type="button" id="saveProfileBtn">Save Profile</button>
+  </form>
+  
+  <div style="margin-top: 20px; border-top: 1px solid #ddd; padding-top: 15px;">
+    <h3>Resume Management</h3>
+    <p style="font-size: 12px; color: #666; margin-bottom: 10px;">
+      Upload and manage your resumes in the options page for better stability.
+    </p>
+    <button type="button" id="openOptionsBtn">Open Resume Manager</button>
+    <div id="resumeCount" style="font-size: 11px; color: #888; margin-top: 5px;"></div>
+  </div>
+  
+  <button id="runAutoApply">Run Auto Apply</button>
+  <div id="status"></div>
+  <script src="popup.js"></script>
+</body>
+</html> 

@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "Auto Job Apply Builder",
+  "version": "1.0.0",
+  "description": "Automatically fills and submits job application forms using stored user data and GPT for unknowns.",
+  "icons": {
+    "128": "public/icon.png"
+  },
+  "permissions": [
+    "storage",
+    "tabs",
+    "scripting",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_icon": "public/icon.png"
+  },
+  "options_page": "src/options/options.html",
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["src/gpt.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+} 
