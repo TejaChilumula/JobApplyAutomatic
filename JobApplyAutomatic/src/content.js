@@ -16,6 +16,34 @@ if (window.autoJobApplicatorInitialized) {
       this.isRunning = false;
       this.currentStep = 0;
       this.maxSteps = 10; // Prevent infinite loops
+      this.demographicAnswers = {
+        gender: 'Male',
+        sex: 'Male',
+        age: '25-34',
+        race: 'Asian',
+        ethnicity: 'Asian',
+        veteran: 'Never served',
+        disability: 'No',
+        lgbtq: 'No',
+        military: 'Never served',
+        minority: 'No',
+        pronoun: 'He/Him',
+        citizenship: 'US Citizen',
+        hispanic: 'No',
+        origin: 'Not Hispanic or Latino',
+        // Add more as needed
+      };
+      this.hardcodedAnswers = [
+        { keywords: ['have you ever worked', 'previously employed', 'prior employment'], answer: 'No' },
+        { keywords: ['legally eligible', 'authorized to work', 'work authorization'], answer: 'Yes' },
+        { keywords: ['preferred location', 'office location'], answer: 'Flexible/Open to any location' },
+        { keywords: ['family member', 'familial relationship', 'relative'], answer: 'No' },
+        { keywords: ['competing', 'signed contract', 'non-compete', 'conflict of interest'], answer: 'No' },
+        { keywords: ['outside business', 'investment', 'vendor', 'intellectual property'], answer: 'No' },
+        { keywords: ['used robinhood'], answer: 'No' },
+        { keywords: ['privacy policy'], answer: 'Yes' },
+        // Add more as needed
+      ];
     }
 
     async init() {
@@ -30,6 +58,11 @@ if (window.autoJobApplicatorInitialized) {
         this.platform = this.detectATSPlatform();
         
         console.log('Auto Job Applicator initialized for platform:', this.platform);
+        
+        // Test GPT connection on init
+        if (this.gptService) {
+          await this.testGPTConnection();
+        }
         
         return true;
       } catch (error) {
@@ -602,55 +635,82 @@ if (window.autoJobApplicatorInitialized) {
 
     // Handle complex questions that need GPT
     async handleComplexQuestions() {
-      if (!this.gptService) {
-        console.log('GPT service not available, skipping complex questions');
-        return;
-      }
-
-      console.log('Handling complex questions with GPT...');
-      
-      // Find all required fields that we haven't filled
+      console.log('Handling complex questions...');
       const requiredFields = this.findRequiredFields();
-      
       for (const field of requiredFields) {
         const fieldType = this.getFieldType(field);
         const question = this.getFieldQuestion(field);
         if (!question) continue;
-
-        if (fieldType === 'select') {
-          // Dropdown: extract options and use GPT to select
-          const options = Array.from(field.options).map(opt => opt.text.trim());
-          const gptPrompt = `You are filling out a job application. Here is the question: "${question}".\nAvailable options: ${options.join(', ')}\nChoose the best option from the list. Only respond with the exact option text.`;
-          let answer = await this.gptService.generateAnswer(question, gptPrompt);
-          const matchedAnswer = options.find(opt => opt.toLowerCase() === answer.toLowerCase()) || options.find(opt => answer.toLowerCase().includes(opt.toLowerCase()));
-          if (matchedAnswer) {
-            this.fillSelectField(field, matchedAnswer);
-            console.log(`Field: ${question}\nAnswer: ${matchedAnswer}\nSource: GPT`);
-          } else {
-            console.warn(`❌ GPT could not match dropdown for: "${question}"`);
+        let answer = null;
+        let source = null;
+        // For dropdowns/radios, always select from options
+        if (fieldType === 'select' || fieldType === 'radio') {
+          // Extract all options
+          let options = [];
+          if (fieldType === 'select') options = Array.from(field.options).map(opt => opt.text.trim());
+          if (fieldType === 'radio') {
+            const radios = document.querySelectorAll(`input[name="${field.name}"][type="radio"]`);
+            options = Array.from(radios).map(radio => this.findFieldLabel(radio) || radio.value);
           }
-        } else if (fieldType === 'textarea') {
-          // Textarea: use GPT to generate answer
-          const gptPrompt = this.createGPTPrompt(question, field);
-          const answer = await this.gptService.generateAnswer(question, gptPrompt);
-          this.fillTextareaField(field, answer);
-          console.log(`Field: ${question}\nAnswer: ${answer}\nSource: GPT`);
-        } else if (this.needsGPTAssistance(question, fieldType)) {
-          // Other complex fields: use GPT
-          const answer = await this.getGPTAnswer(question, field);
+          // Try hardcoded/demographic/profile answer ONLY if it matches an option
+          let localAnswer = this.getHardcodedAnswer(question) || this.demographicAnswers[this.getDemographicKey(question)] || this.getProfileValueForField(field);
+          let matched = this.fuzzyMatchOption(options, localAnswer);
+          if (matched) {
+            answer = matched;
+            source = 'Hardcoded/Demographic/Profile';
+          } else if (this.gptService) {
+            // If no match, ask GPT to pick the best option
+            const gptPrompt = `You are filling out a job application. Here is the question: "${question}".\nAvailable options: ${options.join(', ')}\nChoose the best option from the list. Only respond with the exact option text.`;
+            console.log('[GPT DEBUG] Question:', question);
+            console.log('[GPT DEBUG] Options:', options);
+            console.log('[GPT DEBUG] Prompt:', gptPrompt);
+            const gptAnswer = await this.gptService.generateAnswer(question, gptPrompt);
+            console.log('[GPT DEBUG] Raw GPT Response:', gptAnswer);
+            answer = this.fuzzyMatchOption(options, gptAnswer);
+            console.log('[GPT DEBUG] Matched Option:', answer);
+            source = 'GPT';
+          }
+          // Fill the field if a valid option is found
           if (answer) {
-            await this.fillField(field, answer);
-            console.log(`Field: ${question}\nAnswer: ${answer}\nSource: GPT`);
+            if (fieldType === 'select') {
+              await this.fillSelectField(field, answer);
+            } else {
+              await this.fillRadioField(field, answer);
+            }
+            console.log(`Field: ${question}\nAnswer: ${answer}\nSource: ${source}`);
+          } else {
+            console.warn(`❌ Could not match any option for: "${question}". Options: ${options.join(', ')}`);
           }
-        } else {
-          // For simple fields, try to fill with profile data
-          const profileValue = this.getProfileValueForField(field);
-          if (profileValue) {
-            await this.fillField(field, profileValue);
-            console.log(`Field: ${question}\nAnswer: ${profileValue}\nSource: Profile`);
-          }
+          continue;
         }
+        // For checkboxes, use hardcoded/demographic/profile/GPT as before
+        answer = this.getHardcodedAnswer(question) || this.demographicAnswers[this.getDemographicKey(question)] || this.getProfileValueForField(field);
+        source = 'Hardcoded/Demographic/Profile';
+        if (!answer && this.gptService) {
+          const gptPrompt = `You are filling out a job application. Here is the question: "${question}".\nShould this box be checked? Answer only "Yes" or "No".`;
+          answer = await this.gptService.generateAnswer(question, gptPrompt);
+          source = 'GPT';
+        }
+        if (fieldType === 'checkbox') {
+          await this.fillCheckboxField(field, answer);
+          console.log(`Field: ${question}\nAnswer: ${answer}\nSource: ${source}`);
+          continue;
+        }
+        // For text/textarea, use hardcoded/demographic/profile/GPT as before
+        if (!answer && this.gptService) {
+          const gptPrompt = this.createGPTPrompt(question, field);
+          answer = await this.gptService.generateAnswer(question, gptPrompt);
+          source = 'GPT';
+        }
+        if (fieldType === 'textarea') {
+          await this.fillTextareaField(field, answer);
+        } else {
+          await this.fillInputField(field, answer);
+        }
+        console.log(`Field: ${question}\nAnswer: ${answer}\nSource: ${source}`);
       }
+      // After all required fields, check if all are filled, then submit
+      setTimeout(() => { this.submitIfAllRequiredFilled(); }, 500);
     }
 
     // Check if a field needs GPT assistance
@@ -966,6 +1026,76 @@ Answer:`;
     stop() {
       this.isRunning = false;
       console.log('Auto apply process stopped');
+    }
+
+    // Helper: get demographic key from question/label
+    getDemographicKey(question) {
+      const q = question.toLowerCase();
+      if (q.includes('gender') || q.includes('sex')) return 'gender';
+      if (q.includes('age')) return 'age';
+      if (q.includes('race') || q.includes('ethnic')) return 'race';
+      if (q.includes('veteran') || q.includes('military')) return 'veteran';
+      if (q.includes('disab')) return 'disability';
+      if (q.includes('lgbt')) return 'lgbtq';
+      if (q.includes('minority')) return 'minority';
+      if (q.includes('pronoun')) return 'pronoun';
+      if (q.includes('citizen')) return 'citizenship';
+      if (q.includes('hispanic')) return 'hispanic';
+      if (q.includes('origin')) return 'origin';
+      return null;
+    }
+
+    // Test GPT connection and log result
+    async testGPTConnection() {
+      if (!this.gptService) return;
+      const testQ = 'What is a dog?';
+      try {
+        const answer = await this.gptService.generateAnswer(testQ);
+        console.log(`[GPT TEST] Q: ${testQ}\nA: ${answer}`);
+      } catch (e) {
+        console.error('[GPT TEST] Error:', e);
+      }
+    }
+
+    // Helper: get hardcoded answer for a question
+    getHardcodedAnswer(question) {
+      const q = question.toLowerCase();
+      for (const entry of this.hardcodedAnswers) {
+        if (entry.keywords.some(kw => q.includes(kw))) {
+          return entry.answer;
+        }
+      }
+      return null;
+    }
+
+    // Helper: fuzzy match answer to options
+    fuzzyMatchOption(options, answer) {
+      if (!answer) return null;
+      const answerLower = answer.toLowerCase();
+      // 1. Exact match
+      let match = options.find(opt => opt.toLowerCase() === answerLower);
+      if (match) return match;
+      // 2. Substring match
+      match = options.find(opt => answerLower.includes(opt.toLowerCase()) || opt.toLowerCase().includes(answerLower));
+      if (match) return match;
+      // 3. First option containing any word from answer
+      const answerWords = answerLower.split(/\s+/);
+      match = options.find(opt => answerWords.some(word => opt.toLowerCase().includes(word)));
+      if (match) return match;
+      // 4. Fallback: first option
+      return options[0] || null;
+    }
+
+    // Helper: check if all required fields are filled, then submit
+    submitIfAllRequiredFilled() {
+      const requiredFields = this.findRequiredFields();
+      const unfilled = requiredFields.filter(f => !f.value || (f.type === 'checkbox' && !f.checked));
+      if (unfilled.length === 0) {
+        console.log('All required fields filled. Submitting...');
+        this.trySubmitOrNavigate();
+      } else {
+        console.warn('Some required fields are still unfilled:', unfilled);
+      }
     }
   }
 

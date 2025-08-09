@@ -87,19 +87,18 @@ function showStatus(message, type) {
   }, 3000);
 }
 
-document.getElementById('testGptKeyBtn').addEventListener('click', async function() {
-  const keyInput = document.querySelector('[name="gptApiKey"]');
+document.getElementById('testGptKeyBtn').onclick = async function() {
+  const input = document.querySelector('[name="gptApiKey"]');
   const statusEl = document.getElementById('gpt-status');
-  const apiKey = keyInput.value.trim();
+  const apiKey = input.value.trim();
   if (!apiKey) {
-    statusEl.textContent = '❌ Not Connected';
+    statusEl.textContent = '❌ Please enter an API key';
     statusEl.style.color = 'red';
     return;
   }
-  this.disabled = true;
-  const originalText = this.textContent;
-  this.textContent = 'Testing...';
-  statusEl.textContent = '';
+  statusEl.textContent = '⏳ Testing...';
+  statusEl.style.color = 'orange';
+  // Send a real test request to GPT
   try {
     const response = await fetch('https://api.sambanova.ai/v1/chat/completions', {
       method: 'POST',
@@ -109,27 +108,31 @@ document.getElementById('testGptKeyBtn').addEventListener('click', async functio
       },
       body: JSON.stringify({
         model: 'Llama-4-Maverick-17B-128E-Instruct',
-        messages: [{ role: 'user', content: 'Say hello' }],
-        max_tokens: 10
+        messages: [
+          { role: 'system', content: 'You are a helpful assistant.' },
+          { role: 'user', content: 'What is a dog?' }
+        ],
+        max_tokens: 30,
+        temperature: 0.2
       })
     });
-    if (!response.ok) throw new Error('Invalid key or network error');
+    if (!response.ok) throw new Error('API error: ' + response.status);
     const data = await response.json();
-    if (data.choices && data.choices.length > 0) {
-      statusEl.textContent = '✅ Connected';
+    if (data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
+      statusEl.textContent = '✅ GPT Connected';
       statusEl.style.color = 'green';
+      console.log('[GPT TEST] Success:', data.choices[0].message.content);
     } else {
-      statusEl.textContent = '❌ Not Connected';
+      statusEl.textContent = '❌ Invalid response from GPT';
       statusEl.style.color = 'red';
+      console.error('[GPT TEST] Invalid response:', data);
     }
   } catch (e) {
-    statusEl.textContent = '❌ Not Connected';
+    statusEl.textContent = '❌ GPT Test Failed';
     statusEl.style.color = 'red';
-  } finally {
-    this.disabled = false;
-    this.textContent = originalText;
+    console.error('[GPT TEST] Error:', e);
   }
-});
+};
 
 window.onload = function() {
   // Load profile data
@@ -142,20 +145,39 @@ window.onload = function() {
     }
   });
   
-  // Load GPT API key and show connection status
+  // Set default GPT API key if not present
   chrome.storage.local.get('gptApiKey', (result) => {
     const statusEl = document.getElementById('gpt-status');
+    const input = document.querySelector('[name="gptApiKey"]');
     if (result.gptApiKey && result.gptApiKey.trim() !== '') {
-      const input = document.querySelector('[name="gptApiKey"]');
       if (input) input.value = result.gptApiKey;
       statusEl.textContent = '✅ GPT Connected';
       statusEl.style.color = 'green';
     } else {
-      statusEl.textContent = '❌ GPT Not Connected';
-      statusEl.style.color = 'red';
+      // Set the provided key as default
+      const defaultKey = '759c5a30-a18e-461e-9564-f566ed4a3c5b';
+      if (input) input.value = defaultKey;
+      chrome.storage.local.set({gptApiKey: defaultKey});
+      statusEl.textContent = '✅ GPT Key Set (Default)';
+      statusEl.style.color = 'orange';
     }
   });
   
   // Update resume count
   updateResumeCount();
+};
+
+// When saving profile, also save GPT key
+const saveBtn = document.getElementById('saveProfileBtn');
+saveBtn.onclick = function() {
+  const form = document.getElementById('profileForm');
+  const data = {};
+  for (const el of form.elements) {
+    if (el.name) data[el.name] = el.value;
+  }
+  // Save GPT key
+  const gptKey = document.querySelector('[name="gptApiKey"]').value.trim();
+  chrome.storage.local.set({profile: data, gptApiKey: gptKey}, () => {
+    showStatus('Profile and GPT key saved!', 'success');
+  });
 }; 
